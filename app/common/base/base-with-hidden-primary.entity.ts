@@ -1,7 +1,6 @@
-import { Generated, PrimaryColumn } from 'typeorm';
+import { PrimaryGeneratedColumn } from 'typeorm';
 
 export class BaseWithHiddenPrimaryEntity {
-  @PrimaryColumn({ type: 'uuid', select: false })
-  @Generated('uuid')
-  public id: string;
+  @PrimaryGeneratedColumn()
+  public id: number;
 }

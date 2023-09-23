@@ -1,7 +1,6 @@
-import { Generated, PrimaryColumn } from 'typeorm';
+import { PrimaryGeneratedColumn } from 'typeorm';
 
 export class BaseManyToOneEntity {
-  @PrimaryColumn({ type: 'uuid' })
-  @Generated('uuid')
-  public id: string;
+  @PrimaryGeneratedColumn()
+  public id: number;
 }
