@@ -1,0 +1,4 @@
+export enum PAGINATION_DEFAULT_PROPERTIES {
+  LIMIT = 10,
+  PAGE = 1,
+}
