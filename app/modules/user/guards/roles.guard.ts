@@ -6,9 +6,7 @@ import { Request } from 'express';
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
-  canActivate(
-    context: ExecutionContext,
-  ): boolean | Promise<boolean> | Observable<boolean> {
+  canActivate(context: ExecutionContext): boolean {
     const roles: any = this.reflector.getAllAndOverride('roles', [
       context.getHandler(),
       context.getClass(),
