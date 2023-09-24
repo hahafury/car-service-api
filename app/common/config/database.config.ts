@@ -1,5 +1,12 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
+import {
+  UserCredentialsEntity,
+  UserEntity,
+  UserProfileEntity,
+  UserRoleEntity,
+  UserTokensEntity,
+} from '@app/modules/user/entities';
 
 export const DATABASE_CONFIG: TypeOrmModuleOptions = {
   type: 'postgres',
@@ -8,7 +15,13 @@ export const DATABASE_CONFIG: TypeOrmModuleOptions = {
   username: process.env.POSTGRES_USER,
   password: process.env.POSTGRES_PASSWORD,
   database: process.env.POSTGRES_DATABASE,
-  entities: [],
+  entities: [
+    UserEntity,
+    UserProfileEntity,
+    UserCredentialsEntity,
+    UserRoleEntity,
+    UserTokensEntity,
+  ],
   migrationsTableName: 'migration',
   synchronize: true,
   namingStrategy: new SnakeNamingStrategy(),
