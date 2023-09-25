@@ -15,10 +15,23 @@ import { Payload } from '@app/modules/user/types';
 import { UserEntity, UserTokensEntity } from '@app/modules/user/entities';
 import { CookieOptions, Response, Request } from 'express';
 import { OnlyAuthorizedGuard } from '@app/modules/user/guards';
+import { ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
+
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   private cookieOptions: CookieOptions = { httpOnly: true };
   constructor(private authService: AuthService) {}
+
+  @ApiResponse({
+    status: 401,
+    description: 'Wrong email or password',
+  })
+  @ApiResponse({ status: 200, description: 'The user successfully logged in' })
+  @ApiBody({
+    type: LoginUserDto,
+    description: 'Json structure for user object',
+  })
   @Post('login')
   async login(
     @Body() loginData: LoginUserDto,
@@ -46,6 +59,20 @@ export class AuthController {
       message: 'user successfully logged in',
     });
   }
+
+  @ApiResponse({
+    status: 400,
+    description: 'Password do not match',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'User with this email already exists',
+  })
+  @ApiResponse({ status: 201, description: 'The user successfully created' })
+  @ApiBody({
+    type: RegisterUserDto,
+    description: 'Json structure for user object',
+  })
   @Post('register')
   async register(
     @Body() registerData: RegisterUserDto,
@@ -61,6 +88,11 @@ export class AuthController {
     };
   }
 
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid token',
+  })
+  @ApiResponse({ status: 200, description: 'The user successfully logged out' })
   @Get('logout')
   @UseGuards(OnlyAuthorizedGuard)
   async logout(@Req() req: Request, @Res() res: Response): Promise<void> {
@@ -95,6 +127,15 @@ export class AuthController {
       message: 'User successfully logged out',
     });
   }
+
+  @ApiResponse({
+    status: 403,
+    description: 'Invalid token',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Token successfully refreshed',
+  })
   @Get('refresh')
   async refresh(@Req() req: Request, @Res() res: Response): Promise<void> {
     const refreshToken: string | undefined = req.cookies['refresh_token'];

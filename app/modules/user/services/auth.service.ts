@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { LoginUserDto, RegisterUserDto } from '@app/modules/user/dto';
 import * as bcrypt from 'bcrypt';
 import * as process from 'process';
@@ -6,10 +6,12 @@ import {
   UserCredentialsEntity,
   UserEntity,
   UserProfileEntity,
+  UserRoleEntity,
   UserTokensEntity,
 } from '@app/modules/user/entities';
 import {
   UserRepository,
+  UserRoleRepository,
   UserTokensRepository,
 } from '@app/modules/user/repositories';
 import { Payload, Tokens } from '@app/modules/user/types';
@@ -24,6 +26,7 @@ export class AuthService {
     private tokenService: TokenService,
     private userRepository: UserRepository,
     private userTokensRepository: UserTokensRepository,
+    private userRoleRepository: UserRoleRepository,
   ) {}
 
   async register(registerData: RegisterUserDto): Promise<UserEntity> {
@@ -32,7 +35,7 @@ export class AuthService {
     const user: UserEntity = await this.userRepository.findUserByEmail(email);
 
     if (user) {
-      throw new BadRequestException('User with this email already exists');
+      throw new UnauthorizedException('User with this email already exists');
     }
 
     const hashedPassword: string = await bcrypt.hash(password, this.saltRounds);
@@ -43,12 +46,14 @@ export class AuthService {
     const profile: Partial<UserProfileEntity> =
       this.generateProfile(registerData);
 
-    const clientRoleId: number = 1;
+    const role: UserRoleEntity = await this.userRoleRepository.findOneBy({
+      type: 'client',
+    });
 
     return this.userRepository.save({
       credentials: credentials,
       profile: profile,
-      role: { id: clientRoleId },
+      role: role,
     });
   }
 
@@ -61,7 +66,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new BadRequestException('Wrong email or password');
+      throw new UnauthorizedException('Wrong email or password');
     }
 
     const hashedPassword: string = user.credentials.password;
@@ -72,11 +77,12 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      throw new BadRequestException('Wrong email or password');
+      throw new UnauthorizedException('Wrong email or password');
     }
 
     return user;
   }
+
   private generateCredentials(
     registerData: RegisterUserDto,
     hashedPassword: string,
@@ -109,6 +115,7 @@ export class AuthService {
   removeTokens(userTokensEntity: UserTokensEntity): Promise<UserTokensEntity> {
     return this.userTokensRepository.remove(userTokensEntity);
   }
+
   updateAccessToken(
     userTokensEntity: UserTokensEntity,
     newAccessToken: string,
@@ -140,6 +147,7 @@ export class AuthService {
       },
     });
   }
+
   generateAccessToken(payload: Payload): Promise<string> {
     const accessSecret: string = jwtConstants.authentication.access.secret;
     const accessExpiresIn: string =
@@ -173,6 +181,7 @@ export class AuthService {
     const refreshSecret: string = jwtConstants.authentication.refresh.secret;
     return this.tokenService.verifyToken(refreshToken, refreshSecret);
   }
+
   getTokens(payload: Payload): Promise<[string, string]> {
     return Promise.all([
       this.generateAccessToken(payload),
