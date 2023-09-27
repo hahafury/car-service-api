@@ -1,12 +1,10 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
   Post,
   Req,
   Res,
-  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { LoginUserDto, RegisterUserDto } from '@app/modules/user/dto';
@@ -16,12 +14,18 @@ import { UserEntity, UserTokensEntity } from '@app/modules/user/entities';
 import { CookieOptions, Response, Request } from 'express';
 import { OnlyAuthorizedGuard } from '@app/modules/user/guards';
 import { ApiBody, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { AuthTokenService } from '@app/modules/user/services/auth-token.service';
+import { InvalidToken } from '@app/modules/user/exceptions';
+import { PasswordNotMatch } from '@app/modules/user/exceptions/password-not-match';
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   private cookieOptions: CookieOptions = { httpOnly: true };
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private authTokenService: AuthTokenService,
+  ) {}
 
   @ApiResponse({
     status: 401,
@@ -45,9 +49,9 @@ export class AuthController {
     };
 
     const [accessToken, refreshToken] =
-      await this.authService.getTokens(payload);
+      await this.authTokenService.getTokens(payload);
 
-    await this.authService.saveTokens(user, {
+    await this.authTokenService.saveTokens(user, {
       accessToken: accessToken,
       refreshToken: refreshToken,
     });
@@ -78,7 +82,7 @@ export class AuthController {
     @Body() registerData: RegisterUserDto,
   ): Promise<{ message: string }> {
     if (registerData.password !== registerData.confirmPassword) {
-      throw new BadRequestException('Password do not match');
+      throw new PasswordNotMatch();
     }
 
     await this.authService.register(registerData);
@@ -89,7 +93,7 @@ export class AuthController {
   }
 
   @ApiResponse({
-    status: 401,
+    status: 403,
     description: 'Invalid token',
   })
   @ApiResponse({ status: 200, description: 'The user successfully logged out' })
@@ -97,28 +101,22 @@ export class AuthController {
   @UseGuards(OnlyAuthorizedGuard)
   async logout(@Req() req: Request, @Res() res: Response): Promise<void> {
     const refreshToken: string | undefined = req.cookies['refresh_token'];
-
-    if (!refreshToken) {
-      throw new UnauthorizedException('Invalid token');
-    }
-
-    let payload: Payload;
-    try {
-      payload = await this.authService.verifyRefreshToken(refreshToken);
-    } catch (e) {
-      throw new UnauthorizedException('Invalid token');
-    }
+    const payload: Payload =
+      await this.authTokenService.verifyRefreshToken(refreshToken);
 
     const userId: number = payload.sub;
 
     const tokens: UserTokensEntity | null =
-      await this.authService.findTokensByRefreshToken(userId, refreshToken);
+      await this.authTokenService.findTokensByRefreshToken(
+        userId,
+        refreshToken,
+      );
 
     if (!tokens) {
-      throw new UnauthorizedException('Invalid token');
+      throw new InvalidToken();
     }
 
-    await this.authService.removeTokens(tokens);
+    await this.authTokenService.removeTokens(tokens);
 
     res.clearCookie('access_token');
     res.clearCookie('refresh_token');
@@ -139,31 +137,28 @@ export class AuthController {
   @Get('refresh')
   async refresh(@Req() req: Request, @Res() res: Response): Promise<void> {
     const refreshToken: string | undefined = req.cookies['refresh_token'];
-    if (!refreshToken) {
-      throw new UnauthorizedException('Invalid token');
-    }
-    let payload: Payload;
-    try {
-      payload = await this.authService.verifyRefreshToken(refreshToken);
-    } catch (e) {
-      throw new UnauthorizedException('Invalid token');
-    }
+    const payload: Payload =
+      await this.authTokenService.verifyRefreshToken(refreshToken);
 
     const userId: number = payload.sub;
 
     const tokens: UserTokensEntity | null =
-      await this.authService.findTokensByRefreshToken(userId, refreshToken);
+      await this.authTokenService.findTokensByRefreshToken(
+        userId,
+        refreshToken,
+      );
 
     if (!tokens) {
-      throw new UnauthorizedException('Invalid token');
+      throw new InvalidToken();
     }
 
-    const newAccessToken: string = await this.authService.generateAccessToken({
-      sub: userId,
-      role: payload.role,
-    });
+    const newAccessToken: string =
+      await this.authTokenService.generateAccessToken({
+        sub: userId,
+        role: payload.role,
+      });
 
-    await this.authService.updateAccessToken(tokens, newAccessToken);
+    await this.authTokenService.updateAccessToken(tokens, newAccessToken);
 
     res.cookie('access_token', newAccessToken, this.cookieOptions);
 
