@@ -14,9 +14,13 @@ import {
   UserRoleRepository,
   UserTokensRepository,
 } from '@app/modules/user/repositories';
-import { Payload, Tokens } from '@app/modules/user/types';
+import { Payload, RoleEnum, Tokens } from '@app/modules/user/types';
 import { TokenService } from '@app/modules/user/services/token.service';
 import { jwtConstants } from '@app/common/config';
+import {
+  UserAlreadyExist,
+  WrongCredentials,
+} from '@app/modules/user/exceptions';
 
 @Injectable()
 export class AuthService {
@@ -35,7 +39,7 @@ export class AuthService {
     const user: UserEntity = await this.userRepository.findUserByEmail(email);
 
     if (user) {
-      throw new UnauthorizedException('User with this email already exists');
+      throw new UserAlreadyExist();
     }
 
     const hashedPassword: string = await bcrypt.hash(password, this.saltRounds);
@@ -47,7 +51,7 @@ export class AuthService {
       this.generateProfile(registerData);
 
     const role: UserRoleEntity = await this.userRoleRepository.findOneBy({
-      type: 'client',
+      type: RoleEnum.CLIENT,
     });
 
     return this.userRepository.save({
@@ -66,7 +70,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new UnauthorizedException('Wrong email or password');
+      throw new WrongCredentials();
     }
 
     const hashedPassword: string = user.credentials.password;
@@ -77,7 +81,7 @@ export class AuthService {
     );
 
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Wrong email or password');
+      throw new WrongCredentials();
     }
 
     return user;
@@ -103,89 +107,5 @@ export class AuthService {
       surname: registerData.surname,
     };
     return profile;
-  }
-
-  saveTokens(user: UserEntity, tokens: Tokens): Promise<UserTokensEntity> {
-    return this.userTokensRepository.save({
-      ...tokens,
-      user: user,
-    });
-  }
-
-  removeTokens(userTokensEntity: UserTokensEntity): Promise<UserTokensEntity> {
-    return this.userTokensRepository.remove(userTokensEntity);
-  }
-
-  updateAccessToken(
-    userTokensEntity: UserTokensEntity,
-    newAccessToken: string,
-  ): Promise<UserTokensEntity> {
-    userTokensEntity.accessToken = newAccessToken;
-    return this.userTokensRepository.save(userTokensEntity);
-  }
-
-  findTokensByAccessToken(
-    userId: number,
-    accessToken: string,
-  ): Promise<UserTokensEntity | null> {
-    return this.userTokensRepository.findOneBy({
-      accessToken: accessToken,
-      user: {
-        id: userId,
-      },
-    });
-  }
-
-  findTokensByRefreshToken(
-    userId: number,
-    refreshToken: string,
-  ): Promise<UserTokensEntity | null> {
-    return this.userTokensRepository.findOneBy({
-      refreshToken: refreshToken,
-      user: {
-        id: userId,
-      },
-    });
-  }
-
-  generateAccessToken(payload: Payload): Promise<string> {
-    const accessSecret: string = jwtConstants.authentication.access.secret;
-    const accessExpiresIn: string =
-      jwtConstants.authentication.access.expiresIn;
-
-    return this.tokenService.generateToken(
-      payload,
-      accessSecret,
-      accessExpiresIn,
-    );
-  }
-
-  generateRefreshToken(payload: Payload): Promise<string> {
-    const refreshSecret: string = jwtConstants.authentication.refresh.secret;
-    const refreshExpiresIn: string =
-      jwtConstants.authentication.refresh.expiresIn;
-
-    return this.tokenService.generateToken(
-      payload,
-      refreshSecret,
-      refreshExpiresIn,
-    );
-  }
-
-  verifyAccessToken(accessToken: string): Promise<Payload> {
-    const accessSecret: string = jwtConstants.authentication.access.secret;
-    return this.tokenService.verifyToken(accessToken, accessSecret);
-  }
-
-  verifyRefreshToken(refreshToken: string): Promise<Payload> {
-    const refreshSecret: string = jwtConstants.authentication.refresh.secret;
-    return this.tokenService.verifyToken(refreshToken, refreshSecret);
-  }
-
-  getTokens(payload: Payload): Promise<[string, string]> {
-    return Promise.all([
-      this.generateAccessToken(payload),
-      this.generateRefreshToken(payload),
-    ]);
   }
 }

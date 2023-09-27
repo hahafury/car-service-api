@@ -12,12 +12,14 @@ import {
 import { AuthController, UserController } from '@app/modules/user/controllers';
 import { JwtModule } from '@nestjs/jwt';
 import { OnlyAuthorizedGuard, RolesGuard } from '@app/modules/user/guards';
+import { AuthTokenService } from '@app/modules/user/services/auth-token.service';
 
 @Module({
   imports: [JwtModule],
   providers: [
     UserService,
     AuthService,
+    AuthTokenService,
     TokenService,
     UserRepository,
     UserTokensRepository,
