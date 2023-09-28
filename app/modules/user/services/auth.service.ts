@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { LoginUserDto, RegisterUserDto } from '@app/modules/user/dto';
 import * as bcrypt from 'bcrypt';
 import * as process from 'process';
@@ -7,16 +7,12 @@ import {
   UserEntity,
   UserProfileEntity,
   UserRoleEntity,
-  UserTokensEntity,
 } from '@app/modules/user/entities';
 import {
   UserRepository,
   UserRoleRepository,
-  UserTokensRepository,
 } from '@app/modules/user/repositories';
-import { Payload, RoleEnum, Tokens } from '@app/modules/user/types';
-import { TokenService } from '@app/modules/user/services/token.service';
-import { jwtConstants } from '@app/common/config';
+import { RoleEnum } from '@app/modules/user/types';
 import {
   UserAlreadyExist,
   WrongCredentials,
@@ -27,9 +23,7 @@ export class AuthService {
   private saltRounds: number = +process.env.BCRYPT_SALT_ROUNDS;
 
   constructor(
-    private tokenService: TokenService,
     private userRepository: UserRepository,
-    private userTokensRepository: UserTokensRepository,
     private userRoleRepository: UserRoleRepository,
   ) {}
 

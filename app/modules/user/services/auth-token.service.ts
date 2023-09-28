@@ -1,8 +1,4 @@
-import {
-  ForbiddenException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { UserEntity, UserTokensEntity } from '@app/modules/user/entities';
 import { Payload, Tokens } from '@app/modules/user/types';
 import { jwtConstants } from '@app/common/config';
