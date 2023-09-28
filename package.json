@@ -73,12 +73,20 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.2.2"
   },
+  "_moduleAliases": {
+    "@app": "./app",
+    "@libs": "./libs"
+  },
   "jest": {
     "moduleFileExtensions": [
       "js",
       "json",
       "ts"
     ],
+    "moduleNameMapper": {
+      "@app/(.*)": "<rootDir>/$1",
+      "@libs/(.*)": "libs/$1"
+    },
     "rootDir": "app",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
