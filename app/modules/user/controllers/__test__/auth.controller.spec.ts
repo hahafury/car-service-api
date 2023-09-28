@@ -15,7 +15,6 @@ import {
   UserTokensEntity,
 } from '@app/modules/user/entities';
 import { RoleEnum } from '@app/modules';
-import * as wasi from 'wasi';
 import { Message } from '@app/common/types/message.type';
 import { Payload } from '@app/modules/user/types';
 
