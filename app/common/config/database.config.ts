@@ -7,6 +7,7 @@ import {
   UserRoleEntity,
   UserTokensEntity,
 } from '@app/modules/user/entities';
+import { PreAppointmentEntity } from '@app/modules/pre-appointment/entities';
 
 export const DATABASE_CONFIG: TypeOrmModuleOptions = {
   type: 'postgres',
@@ -21,6 +22,7 @@ export const DATABASE_CONFIG: TypeOrmModuleOptions = {
     UserCredentialsEntity,
     UserRoleEntity,
     UserTokensEntity,
+    PreAppointmentEntity,
   ],
   migrationsTableName: 'migration',
   synchronize: true,
